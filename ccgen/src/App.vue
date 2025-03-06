@@ -6,7 +6,7 @@ import InputBar from './components/InputBar.vue';
 <template>
   <header>
     <div class="title-item">
-      <h1 class="title-header">Konicihwarts minasan</h1>
+      <h1 class="title-header">Youtube to Transcript</h1>
     </div>
   </header>
 
@@ -27,7 +27,7 @@ header {
 }
 
 .url-item {
-  display: flex;
+  display: block;
   justify-content: center;
   align-items: center;
 }
