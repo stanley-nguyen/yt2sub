@@ -11,20 +11,24 @@ defineProps({
 const url = ref('');
 const status = ref(0);
 const transcribed = ref(null);
+const deviceChecked = ref(false);
 
 const transcribeAudio = async () => {
   console.log("Transcribing Audio...")
-  transcribed.value = await audioToText(url, status);
+  transcribed.value = await audioToText(url, status, deviceChecked.value);
   console.log("Transcription Complete")
 }
 </script>
 
 <template>
   <div>
-    <input v-if="status === 0" class="urlText" type="text" v-model="url" @keyup.enter="transcribeAudio" placeholder="Enter YouTube URL / ID">
+    <div v-if="status === 0">
+      <input v-if="status === 0" class="url-text" type="text" v-model="url" @keyup.enter="transcribeAudio" placeholder="Enter YouTube URL / ID">
+      WebGPU <input type="checkbox" id="device-checkbox" v-model="deviceChecked">
+    </div>
     <p v-else-if="status === 1">Fetching Audio Stream...</p>
     <p v-else-if="status === 2">Loading Model...</p>
-    <p v-else-if="status === 3">Generating Transcript...</p>
+    <p v-else-if="status === 3">Generating Transcript using {{ deviceChecked ? 'WebGPU' : 'WASM' }}...</p>
   </div>
 
   <ul v-if="transcribed">
@@ -57,15 +61,8 @@ h3 {
   font-size: 1.2rem;
 }
 
-.urlText {
+.url-text {
   text-align: center;
   width: 50em;
-}
-
-@media (min-width: 1024px) {
-  .greetings h1,
-  .greetings h3 {
-    text-align: left;
-  }
 }
 </style>

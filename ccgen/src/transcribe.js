@@ -11,7 +11,7 @@ async function streamToF32Array(stream) {
     return audioBuffer.getChannelData(0);
 }
 
-export async function audioToText(url, status) {
+export async function audioToText(url, status, deviceChecked) {
     const urlInput = url.value;
     var urlID;
     if (urlInput.includes('youtube.com')) { 
@@ -31,16 +31,27 @@ export async function audioToText(url, status) {
         status.value = 1;
         const audioStream = await fetch(`http://localhost:3000/api/${urlID}`);
         console.log("stream loaded");
+
+        // pipeline takes Float32Array
         const f32Array = await streamToF32Array(audioStream.body);
     
+        // switch to webgpu if enabled
+        const device = deviceChecked ? 'webgpu' : 'wasm';
+
         // status 2 = load model
         status.value = 2;
-        const transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-base');
+        const transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-base', {
+            device: device,
+        });
         console.log("transcriber loaded");
     
         // status 3 = transcribe audio
         status.value = 3;
+        const start = performance.now();
         const output = await transcriber(f32Array, { chunk_length_s: 30, stride_length_s: 3, return_timestamps: true, language: 'english' });
+        const end = performance.now();
+
+        console.log(`Transcription took ${end - start} ms`);
 
         return output;
     } catch (error) {
