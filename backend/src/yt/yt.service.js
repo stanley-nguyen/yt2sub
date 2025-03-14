@@ -6,7 +6,7 @@ export async function urlToStream(req, res) {
 
         // validate if url is valid
         if (!ytdl.validateURL(url)) {
-            res.status(404).json({ error: 'Invalid YouTube URL' })
+            return res.status(404).json({ error: 'Invalid YouTube URL' })
         }
 
         // find best audio format and create a stream
@@ -14,8 +14,7 @@ export async function urlToStream(req, res) {
         const format = ytdl.chooseFormat(info.formats, { filter: 'audioonly' });
 
         if (!format) {
-            res.status(404).json({ error: 'No format found.' });
-            return;
+            return res.status(404).json({ error: 'No format found.' });
         }
 
         const audioStream = ytdl(url, { format });

@@ -30,6 +30,10 @@ export async function audioToText(url, status, deviceChecked) {
         // status 1 = fetching audio data
         status.value = 1;
         const audioStream = await fetch(`http://localhost:3000/api/${urlID}`);
+        if (audioStream.status !== 200) {
+            status.value = 0;
+            throw new Error("Invalid URL.");
+        }
         console.log("stream loaded");
 
         // pipeline takes Float32Array

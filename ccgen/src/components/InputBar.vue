@@ -11,23 +11,28 @@ defineProps({
 const url = ref('');
 const status = ref(0);
 const transcribed = ref(null);
-const deviceChecked = ref(false);
+const deviceChecked = ref(true);
 
 const transcribeAudio = async () => {
   console.log("Transcribing Audio...")
   transcribed.value = await audioToText(url, status, deviceChecked.value);
+  if (transcribed.value.error)
+    transcribed.value = null;
   console.log("Transcription Complete")
 }
 </script>
 
 <template>
   <div>
-    <div v-if="status === 0">
-      <input v-if="status === 0" class="url-text" type="text" v-model="url" @keyup.enter="transcribeAudio" placeholder="Enter YouTube URL / ID">
-      WebGPU <input type="checkbox" id="device-checkbox" v-model="deviceChecked">
+    <div v-if="status === 0" class="input-container">
+      <input class="url-text" type="text" v-model="url" @keyup.enter="transcribeAudio" placeholder="Enter YouTube URL / ID">
+      <div class="checkbox-container">
+        <label for="device-checkbox" class="device-label">WebGPU</label>
+        <input type="checkbox" id="device-checkbox" v-model="deviceChecked">
+      </div>
     </div>
     <p v-else-if="status === 1">Fetching Audio Stream...</p>
-    <p v-else-if="status === 2">Loading Model...</p>
+    <p v-else-if="status === 2">Loading Model (first time may take a while)...</p>
     <p v-else-if="status === 3">Generating Transcript using {{ deviceChecked ? 'WebGPU' : 'WASM' }}...</p>
   </div>
 
@@ -64,5 +69,23 @@ h3 {
 .url-text {
   text-align: center;
   width: 50em;
+  margin-bottom: 1em;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.device-label {
+  margin-right: 0.5em;
 }
 </style>
