@@ -11,6 +11,31 @@ async function streamToF32Array(stream) {
     return audioBuffer.getChannelData(0);
 }
 
+async function getModelSize(modelName, deviceChecked) {
+    const apiUrl = `https://huggingface.co/api/models/${modelName}/tree/main/onnx`;
+
+    try {
+        const response = await fetch(apiUrl);
+        const modelFiles = await response.json();
+
+        // if using WASM, get size of quantized model. WebGPU uses FP32 model
+        const quant = deviceChecked ? '' : '_quantized';
+
+        const decoderFile = modelFiles.find(f => f.path === `onnx/decoder_model_merged${quant}.onnx`);
+        const encoderFile = modelFiles.find(f => f.path === `onnx/encoder_model${quant}.onnx`);
+        if (!decoderFile || !encoderFile) {
+            throw new Error('Model files not found');
+        }
+
+        // return total size in MB
+        return (decoderFile.size + encoderFile.size) / 1000**2;
+    }
+    catch (error) {
+        console.error(`Failed to get model size: ${error}`);
+        return 0;
+    }
+}
+
 export async function audioToText(url, status, deviceChecked) {
     const urlInput = url.value;
     var urlID;
@@ -42,9 +67,11 @@ export async function audioToText(url, status, deviceChecked) {
         // switch to webgpu if enabled
         const device = deviceChecked ? 'webgpu' : 'wasm';
 
+        const modelSize = await getModelSize('Xenova/whisper-tiny.en', deviceChecked);
+
         // status 2 = load model
         status.value = 2;
-        const transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-base', {
+        const transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en', {
             device: device,
         });
         console.log("transcriber loaded");
@@ -52,10 +79,10 @@ export async function audioToText(url, status, deviceChecked) {
         // status 3 = transcribe audio
         status.value = 3;
         const start = performance.now();
-        const output = await transcriber(f32Array, { chunk_length_s: 30, stride_length_s: 3, return_timestamps: true, language: 'english' });
+        const output = await transcriber(f32Array, { chunk_length_s: 30, stride_length_s: 3, return_timestamps: true });
         const end = performance.now();
 
-        console.log(`Transcription took ${end - start} ms`);
+        console.log(`Transcription took ${((end - start) / 1000).toFixed(2)} seconds`);
 
         return output;
     } catch (error) {

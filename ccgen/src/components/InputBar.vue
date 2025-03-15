@@ -1,6 +1,7 @@
 <script setup>
 import { audioToText } from '../transcribe.js';
 import { ref } from 'vue'
+import LoadingBar from './LoadingBar.vue';
 
 defineProps({
   url: {
@@ -31,9 +32,7 @@ const transcribeAudio = async () => {
         <input type="checkbox" id="device-checkbox" v-model="deviceChecked">
       </div>
     </div>
-    <p v-else-if="status === 1">Fetching Audio Stream...</p>
-    <p v-else-if="status === 2">Loading Model (first time may take a while)...</p>
-    <p v-else-if="status === 3">Generating Transcript using {{ deviceChecked ? 'WebGPU' : 'WASM' }}...</p>
+    <LoadingBar :status="status" :deviceChecked="deviceChecked"></LoadingBar>
   </div>
 
   <ul v-if="transcribed">
