@@ -11,7 +11,7 @@ async function streamToF32Array(stream) {
     return audioBuffer.getChannelData(0);
 }
 
-async function getModelSize(modelName, deviceChecked) {
+async function getModelSize(modelName, device) {
     const apiUrl = `https://huggingface.co/api/models/${modelName}/tree/main/onnx`;
 
     try {
@@ -19,7 +19,7 @@ async function getModelSize(modelName, deviceChecked) {
         const modelFiles = await response.json();
 
         // if using WASM, get size of quantized model. WebGPU uses FP32 model
-        const quant = deviceChecked ? '' : '_quantized';
+        const quant = device === 'webgpu' ? '' : '_quantized';
 
         const decoderFile = modelFiles.find(f => f.path === `onnx/decoder_model_merged${quant}.onnx`);
         const encoderFile = modelFiles.find(f => f.path === `onnx/encoder_model${quant}.onnx`);
@@ -37,16 +37,15 @@ async function getModelSize(modelName, deviceChecked) {
 }
 
 export async function audioToText(url, status, deviceChecked) {
-    const urlInput = url.value;
     var urlID;
-    if (urlInput.includes('youtube.com')) { 
-        urlID = urlInput.split("watch?v=")[1];
+    if (url.includes('youtube.com')) { 
+        urlID = url.split("watch?v=")[1];
     }
-    else if (urlInput.includes('youtu.be')) {
-        urlID = urlInput.split("youtu.be/")[1];
+    else if (url.includes('youtu.be')) {
+        urlID = url.split("youtu.be/")[1];
     }
     else {
-        urlID = urlInput;
+        urlID = url;
     }
 
     console.log("entered audioToText");
@@ -65,9 +64,9 @@ export async function audioToText(url, status, deviceChecked) {
         const f32Array = await streamToF32Array(audioStream.body);
     
         // switch to webgpu if enabled
-        const device = deviceChecked ? 'webgpu' : 'wasm';
+        const device = deviceChecked.value ? 'webgpu' : 'wasm';
 
-        const modelSize = await getModelSize('Xenova/whisper-tiny.en', deviceChecked);
+        const modelSize = await getModelSize('Xenova/whisper-tiny.en', device);
 
         // status 2 = load model
         status.value = 2;
@@ -87,7 +86,6 @@ export async function audioToText(url, status, deviceChecked) {
         return output;
     } catch (error) {
         console.error(error);
-        status.value = 0;
         return { error: 'Failed to fetch audio data.' };
     } finally {
         // status 0 = default

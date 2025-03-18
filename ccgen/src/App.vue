@@ -1,5 +1,18 @@
 <script setup>
+import { ref, computed } from 'vue';
 import InputBar from './components/InputBar.vue';
+import LoadingBar from './components/LoadingBar.vue';
+import TranscriptionResult from './components/TranscriptionResult.vue';
+
+const status = ref(0);
+const transcribed = ref(null);
+const deviceChecked = ref(true);
+
+const inputProps = computed(() => {
+  return status.value === 0 ? 
+       { status: status, deviceChecked: deviceChecked, transcribed: transcribed } :
+       { status: status.value, deviceChecked: deviceChecked.value };
+});
 
 </script>
 
@@ -12,7 +25,8 @@ import InputBar from './components/InputBar.vue';
 
   <main>
     <div class="url-item">
-      <InputBar/>
+      <component :is="status === 0 ? InputBar : LoadingBar" v-bind="inputProps"/>
+      <TranscriptionResult :transcribed="transcribed"/>
     </div>
   </main>
 </template>
