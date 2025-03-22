@@ -76,6 +76,7 @@
       console.error('Invalid model.');
       invalidModel.value = true;
       setTimeout(() => invalidModel.value = false, 3000);
+      searchModel.value = false;
       return 0;
     }
 
