@@ -10,8 +10,6 @@ const props = defineProps({
   transcribed: Object
 });
 
-const emit = defineEmits(['update:deviceChecked']);
-
 const transcribeAudio = async () => {
   console.log("Transcribing Audio...")
   props.transcribed.value = await audioToText(url.value, props.status, props.deviceChecked);
@@ -39,10 +37,6 @@ const handleChecked = () => {
 div {
   text-align: center;
   margin-bottom: 5em;
-}
-
-ul {
-  list-style-type: none;
 }
 
 h1 {
