@@ -1,18 +1,22 @@
 <script setup>
 import { ref } from 'vue'
 import { audioToText } from '../transcribe.js';
+import Dropdown from './Dropdown.vue';
 
 const url = ref('');
 
 const props = defineProps({
   status: Object,
   deviceChecked: Object,
-  transcribed: Object
+  transcribed: Object,
+  model: Object,
+  modelSize: Object,
+  sizeIndex: Object
 });
 
 const transcribeAudio = async () => {
   console.log("Transcribing Audio...")
-  props.transcribed.value = await audioToText(url.value, props.status, props.deviceChecked);
+  props.transcribed.value = await audioToText(props.model.value, url.value, props.status, props.deviceChecked);
   if (props.transcribed.value.error)
     props.transcribed.value = null;
   console.log("Transcription Complete")
@@ -21,11 +25,14 @@ const transcribeAudio = async () => {
 const handleChecked = () => {
   props.deviceChecked.value = !props.deviceChecked.value;
 }
+
+const modelOptions = ['Xenova/whisper-tiny', 'Xenova/whisper-tiny.en', 'Xenova/whisper-base', 'Xenova/whisper-medium'];
 </script>
 
 <template>
   <div>
     <input class="url-text" type="text" v-model="url" @keyup.enter="transcribeAudio" placeholder="Enter YouTube URL / ID">
+    <Dropdown :options="modelOptions" :model="model" :modelSize="modelSize" :deviceChecked="deviceChecked" :sizeIndex="sizeIndex"/>
     <div class="checkbox-container">
       <label for="device-checkbox" class="device-label">WebGPU</label>
       <input type="checkbox" id="device-checkbox" :checked="deviceChecked.value" @change="handleChecked">
@@ -36,18 +43,7 @@ const handleChecked = () => {
 <style scoped>
 div {
   text-align: center;
-  margin-bottom: 5em;
-}
-
-h1 {
-  font-weight: 500;
-  font-size: 2.6rem;
-  position: relative;
-  top: -10px;
-}
-
-h3 {
-  font-size: 1.2rem;
+  margin-bottom: 1em;
 }
 
 .url-text {

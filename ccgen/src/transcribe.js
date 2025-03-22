@@ -11,11 +11,14 @@ async function streamToF32Array(stream) {
     return audioBuffer.getChannelData(0);
 }
 
-async function getModelSize(modelName, device) {
+export async function getModelSize(modelName, device) {
     const apiUrl = `https://huggingface.co/api/models/${modelName}/tree/main/onnx`;
 
     try {
         const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`Invalid response: ${response.status}`);
+        }
         const modelFiles = await response.json();
 
         // if using WASM, get size of quantized model. WebGPU uses FP32 model
@@ -23,12 +26,14 @@ async function getModelSize(modelName, device) {
 
         const decoderFile = modelFiles.find(f => f.path === `onnx/decoder_model_merged${quant}.onnx`);
         const encoderFile = modelFiles.find(f => f.path === `onnx/encoder_model${quant}.onnx`);
-        if (!decoderFile || !encoderFile) {
+        const modelFile = modelFiles.find(f => f.path === `onnx/model${quant}.onnx`);
+
+        if (!decoderFile && !encoderFile && !modelFile) {
             throw new Error('Model files not found');
         }
 
         // return total size in MB
-        return (decoderFile.size + encoderFile.size) / 1000**2;
+        return (decoderFile && encoderFile) ? (decoderFile.size + encoderFile.size) / 1000**2 : modelFile.size / 1000**2;
     }
     catch (error) {
         console.error(`Failed to get model size: ${error}`);
@@ -36,7 +41,7 @@ async function getModelSize(modelName, device) {
     }
 }
 
-export async function audioToText(url, status, deviceChecked) {
+export async function audioToText(model, url, status, deviceChecked) {
     var urlID;
     if (url.includes('youtube.com')) { 
         urlID = url.split("watch?v=")[1];
@@ -66,11 +71,9 @@ export async function audioToText(url, status, deviceChecked) {
         // switch to webgpu if enabled
         const device = deviceChecked.value ? 'webgpu' : 'wasm';
 
-        const modelSize = await getModelSize('Xenova/whisper-tiny.en', device);
-
         // status 2 = load model
         status.value = 2;
-        const transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en', {
+        const transcriber = await pipeline('automatic-speech-recognition', model, {
             device: device,
         });
         console.log("transcriber loaded");

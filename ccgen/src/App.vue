@@ -7,11 +7,14 @@ import TranscriptionResult from './components/TranscriptionResult.vue';
 const status = ref(0);
 const transcribed = ref(null);
 const deviceChecked = ref(true);
+const model = ref('Xenova/whisper-tiny');
+const modelSize = ref(151.489138);
+const sizeIndex = ref(new Map());
 
 const inputProps = computed(() => {
   return status.value === 0 ? 
-       { status: status, deviceChecked: deviceChecked, transcribed: transcribed } : // props for InputBar component
-       { status: status.value, deviceChecked: deviceChecked.value };                // props for LoadingBar component
+       { status: status, deviceChecked: deviceChecked, transcribed: transcribed, model: model, modelSize: modelSize, sizeIndex: sizeIndex } // props for InputBar component
+     : { status: status.value, deviceChecked: deviceChecked.value };                                                                        // props for LoadingBar component
 });
 
 </script>
