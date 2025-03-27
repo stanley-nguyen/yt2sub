@@ -15,12 +15,12 @@
     <label v-if="invalidModel" for="model-input" class="invalid-model">
       Invalid model, try a different one.
     </label>
-    <div v-else-if="modelFound" for="model-input" class="found-model">
+    <label v-else-if="modelFound" for="model-input" class="found-model">
       Model found!
-    </div>
-    <div v-else-if="modelExists" for="model-input" class="exists-model">
+    </label>
+    <label v-else-if="modelExists" for="model-input" class="exists-model">
       Model already exists!
-    </div>
+    </label>
 
     <div class="model-info">
       Models can be found on
@@ -32,6 +32,8 @@
 <script setup>
   import { ref, watch, computed } from 'vue';
   import { getModelSize } from '@/transcribe';
+
+  const popupTime = 3000; // time that information popups will display for in milliseconds
 
   const props = defineProps({
     model: Object,
@@ -47,7 +49,7 @@
   const modelFound = ref(false);
   const searchModel = ref(false);
   const modelExists = ref(false);
-  
+
   if (!selected.value) {
     selected.value = props.model.value;
   }
@@ -64,6 +66,7 @@
     const indexedSize = props.sizeIndex.value.get(indexName);
     let size;
 
+    // if size is already cached, use it, else get it from api
     if (indexedSize) {
       size = indexedSize;
       props.modelSize.value = size;
@@ -72,28 +75,33 @@
       size = await getModelSize(newModel, device);
     }
 
+    // if api returns invalid size, error and return
     if (!size) {
       console.error('Invalid model.');
       invalidModel.value = true;
-      setTimeout(() => invalidModel.value = false, 3000);
+      setTimeout(() => invalidModel.value = false, popupTime);
       searchModel.value = false;
       return 0;
     }
 
+    // add custom model to selectable options list if not already present
     if (!props.options.includes(newModel))
       props.options.push(newModel);
 
+    // update indexed size and selected value
     props.sizeIndex.value.set(indexName, size);
     props.modelSize.value = size;
     selected.value = newModel;
+
+    // set flags to display information in webpage for popupTime in ms
     if (searchModel.value && !indexedSize) {
       modelFound.value = true;
-      setTimeout(() => modelFound.value = false, 3000);
+      setTimeout(() => modelFound.value = false, popupTime);
       searchModel.value = false;
     }
     else if (searchModel.value && indexedSize) {
       modelExists.value = true;
-      setTimeout(() => modelExists.value = false, 3000);
+      setTimeout(() => modelExists.value = false, popupTime);
       searchModel.value = false;
     }
 
