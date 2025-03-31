@@ -1,7 +1,7 @@
 import { pipeline } from '@huggingface/transformers';
 
-async function streamToF32Array(stream) {
-    const chunks = new Uint8Array(await new Response(stream).arrayBuffer());
+async function streamToF32Array(blob) {
+    const chunks = new Uint8Array(await blob.arrayBuffer());
 
     // decode Uint8Array into Float32Array
     // whisper expects 16000 sampling rate
@@ -41,32 +41,15 @@ export async function getModelSize(modelName, device) {
     }
 }
 
-export async function audioToText(model, url, status, deviceChecked) {
-    var urlID;
-    if (url.includes('youtube.com')) { 
-        urlID = url.split("watch?v=")[1];
-    }
-    else if (url.includes('youtu.be')) {
-        urlID = url.split("youtu.be/")[1];
-    }
-    else {
-        urlID = url;
-    }
-
+export async function audioToText(model, status, deviceChecked, response) {
     console.log("entered audioToText");
 
     try {
-        // status 1 = fetching audio data
-        status.value = 1;
-        const audioStream = await fetch(`http://localhost:3000/api/${urlID}`);
-        if (audioStream.status !== 200) {
-            status.value = 0;
-            throw new Error("Invalid URL.");
-        }
+        const audioBlob = await response.blob();
         console.log("stream loaded");
 
         // pipeline takes Float32Array
-        const f32Array = await streamToF32Array(audioStream.body);
+        const f32Array = await streamToF32Array(audioBlob);
     
         // switch to webgpu if enabled
         const device = deviceChecked.value ? 'webgpu' : 'wasm';
@@ -88,8 +71,8 @@ export async function audioToText(model, url, status, deviceChecked) {
 
         return output;
     } catch (error) {
-        console.error(error);
-        return { error: 'Failed to fetch audio data.' };
+        console.error(error.message);
+        throw error;
     } finally {
         // status 0 = default
         status.value = 0;

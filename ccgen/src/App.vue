@@ -30,9 +30,11 @@ const inputProps = computed(() => {
         </header>
 
         <div class="url-item">
-          <component :is="status === 0 ? InputBar : LoadingBar" v-bind="inputProps"/>
+          <component :is="status === 0 ? InputBar : LoadingBar" v-bind="inputProps"
+                     @update:deviceChecked="deviceChecked = !deviceChecked"
+                     @update:status="(st) => status = st"/>
         </div>
-      </div>    
+      </div>
 
       <div class="result-container" v-if="transcribed">
         <TranscriptionResult :transcribed="transcribed"/>
@@ -72,7 +74,7 @@ const inputProps = computed(() => {
 }
 
 .result-container {
-  padding: 3vh 0;
+  padding: 2vh 0;
 }
 
 ul {

@@ -18,6 +18,13 @@ export async function urlToStream(req, res) {
         }
 
         const audioStream = ytdl(url, { format });
+        
+        audioStream.on('error', (err) => {
+            console.error(err);
+            return res.status(403).json({
+                error: 'An error occurred while processing the audio stream.'
+            });
+        });
 
         // example format:
         // format.mimeType = audio/webm; codecs="opus"

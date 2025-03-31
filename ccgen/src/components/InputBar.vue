@@ -4,6 +4,7 @@ import { audioToText } from '../transcribe.js';
 import Dropdown from './Dropdown.vue';
 
 const url = ref('');
+const emit = defineEmits(["update:deviceChecked", "update:status"]);
 
 const props = defineProps({
   status: Object,
@@ -14,16 +15,49 @@ const props = defineProps({
   sizeIndex: Object
 });
 
-const transcribeAudio = async () => {
-  console.log("Transcribing Audio...")
-  props.transcribed.value = await audioToText(props.model.value, url.value, props.status, props.deviceChecked);
-  if (props.transcribed.value.error)
-    props.transcribed.value = null;
-  console.log("Transcription Complete")
+async function transcribeAudio() {
+  console.log("Transcribing Audio...");
+
+  try {
+    const id = urlToID(url.value);
+
+    if (!id) {
+      url.value = '';
+      throw new Error('Invalid YouTube URL');
+    }
+
+    // status 1 = fetching audio data
+    emit("update:status", 1);
+    const response = await fetch(`http://localhost:3000/api/${id}`);
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error);
+    }
+
+    const transcribed = await audioToText(props.model.value, props.status, props.deviceChecked, response);
+    props.transcribed.value = transcribed;
+  } catch (error) {
+    console.error(error);
+  } finally {
+    props.status.value = 0;
+  }
+}
+
+function urlToID(url) {
+  // extract ID from url
+  // https://gist.github.com/rodrigoborgesdeoliveira/987683cfbfcc8d800192da1e73adc486?permalink_comment_id=5111294#gistcomment-5111294
+  const regex = /(?:youtu\.be\/|youtube\.com(?:\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=|shorts\/)|youtu\.be\/|embed\/|v\/|m\/|watch\?(?:[^=]+=[^&]+&)*?v=))([^"&?\/\s]{11})/gm;
+
+  const edgeCasesRegex = /(?:https?:\/\/)?(?:www\.)?(?:m\.)?youtube\.com\/watch\/([a-zA-Z0-9_-]+)/;
+
+  let match = regex.exec(url) || edgeCasesRegex.exec(url);
+
+  return match ? match[1] : url;
 }
 
 const handleChecked = () => {
-  props.deviceChecked.value = !props.deviceChecked.value;
+  emit('update:deviceChecked');
 }
 
 const modelOptions = ['Xenova/whisper-tiny', 'Xenova/whisper-tiny.en', 'Xenova/whisper-base', 'Xenova/whisper-medium'];
@@ -31,7 +65,7 @@ const modelOptions = ['Xenova/whisper-tiny', 'Xenova/whisper-tiny.en', 'Xenova/w
 
 <template>
   <div>
-    <input class="url-text" type="text" v-model="url" @keyup.enter="transcribeAudio" placeholder="Enter YouTube URL / ID">
+    <input class="url-text" id="url-text" type="text" v-model="url" @keyup.enter="transcribeAudio" placeholder="Enter YouTube URL / ID">
     <Dropdown :options="modelOptions" :model="model" :modelSize="modelSize" :deviceChecked="deviceChecked" :sizeIndex="sizeIndex"/>
     <div class="checkbox-container">
       <label for="device-checkbox" class="device-label">WebGPU</label>
@@ -47,9 +81,10 @@ div {
 }
 
 .url-text {
+  display: block;
   text-align: center;
   width: 50em;
-  margin-bottom: 1em;
+  margin-bottom: 0.5em;
 }
 
 .input-container {
