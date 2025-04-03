@@ -10,10 +10,11 @@ const deviceChecked = ref(true);
 const model = ref('Xenova/whisper-tiny');
 const modelSize = ref(151.489138);
 const sizeIndex = ref(new Map());
+const modelOptions = ['Xenova/whisper-tiny', 'Xenova/whisper-tiny.en', 'Xenova/whisper-base', 'Xenova/whisper-medium'];
 
 const inputProps = computed(() => {
   return status.value === 0 ? 
-       { status: status, deviceChecked: deviceChecked, transcribed: transcribed, model: model, modelSize: modelSize, sizeIndex: sizeIndex } // props for InputBar component
+       { status: status, deviceChecked: deviceChecked, transcribed: transcribed, model: model, modelSize: modelSize, sizeIndex: sizeIndex, modelOptions: modelOptions } // props for InputBar component
      : { status: status.value, deviceChecked: deviceChecked.value };                                                                        // props for LoadingBar component
 });
 
@@ -32,7 +33,8 @@ const inputProps = computed(() => {
         <div class="url-item">
           <component :is="status === 0 ? InputBar : LoadingBar" v-bind="inputProps"
                      @update:deviceChecked="deviceChecked = !deviceChecked"
-                     @update:status="(st) => status = st"/>
+                     @update:status="(st) => status = st"
+                     @update:options="(op) => modelOptions.push(op)"/>
         </div>
       </div>
 

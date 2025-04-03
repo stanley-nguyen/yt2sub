@@ -1,3 +1,102 @@
+<script setup>
+import { ref, watch, computed, defineEmits } from 'vue';
+import { getModelSize } from '@/transcribe';
+
+const popupTime = 3000; // time that information popups will display for in milliseconds
+
+const emit = defineEmits(["update:options"]);
+
+const props = defineProps({
+  model: Object,
+  modelSize: Object,
+  sizeIndex: Object,
+  deviceChecked: Object,
+  options: Object,
+  selected: String
+});
+
+const selected = ref(props.selected);
+const invalidModel = ref(false);
+const modelFound = ref(false);
+const searchModel = ref(false);
+const modelExists = ref(false);
+
+if (!selected.value) {
+  selected.value = props.model.value;
+}
+
+// cache model & model size if not already cached,
+// check if model is valid on huggingface
+// if not, log error and return 0.
+// if model is valid, update the model size in props and selected value.
+watch([props.model, props.deviceChecked, searchModel], async (val) => {
+  invalidModel.value = false;
+  const newModel = val[0];
+  const device = props.deviceChecked.value ? 'webgpu' : 'wasm';
+  const indexName = `${newModel}-${device}`;
+  const indexedSize = props.sizeIndex.value.get(indexName);
+  let size;
+
+  // if size is already cached, use it, else get it from api
+  if (indexedSize) {
+    size = indexedSize;
+    props.modelSize.value = size;
+  }
+  else {
+    size = await getModelSize(newModel, device);
+  }
+
+  // if api returns invalid size, error and return
+  if (!size) {
+    console.error('Invalid model.');
+    invalidModel.value = true;
+    setTimeout(() => invalidModel.value = false, popupTime);
+    searchModel.value = false;
+    return 0;
+  }
+
+  // add custom model to selectable options list if not already present
+  if (!props.options.includes(newModel))
+    emit("update:options", newModel);
+
+  // update indexed size and selected value
+  props.sizeIndex.value.set(indexName, size);
+  props.modelSize.value = size;
+  selected.value = newModel;
+
+  // set flags to display information in webpage for popupTime in ms
+  if (searchModel.value && !indexedSize) {
+    modelFound.value = true;
+    setTimeout(() => modelFound.value = false, popupTime);
+    searchModel.value = false;
+  }
+  else if (searchModel.value && indexedSize) {
+    modelExists.value = true;
+    setTimeout(() => modelExists.value = false, popupTime);
+    searchModel.value = false;
+  }
+
+});
+
+function handleChange() {
+  props.model.value = selected.value;
+};
+
+function handleEnter(event) {
+  props.model.value = event.target.value;
+  searchModel.value = true;
+  event.target.value = '';
+}
+
+// format model size to MB or GB, depending on size in MB
+const formattedSize = computed(() => {
+  const sizeMB = props.modelSize.value;
+  return sizeMB >= 1000
+        ? `${(sizeMB / 1000).toFixed(2)} GB`
+        : `${sizeMB.toFixed(2)} MB`;
+});
+</script>
+
 <template>
   <div>
     <label for="dropdown">Preset Models </label>
@@ -29,103 +128,6 @@
   </div>
 </template>
 
-<script setup>
-  import { ref, watch, computed } from 'vue';
-  import { getModelSize } from '@/transcribe';
-
-  const popupTime = 3000; // time that information popups will display for in milliseconds
-
-  const props = defineProps({
-    model: Object,
-    modelSize: Object,
-    sizeIndex: Object,
-    deviceChecked: Object,
-    options: Array,
-    selected: String
-  });
-
-  const selected = ref(props.selected);
-  const invalidModel = ref(false);
-  const modelFound = ref(false);
-  const searchModel = ref(false);
-  const modelExists = ref(false);
-
-  if (!selected.value) {
-    selected.value = props.model.value;
-  }
-
-  // cache model & model size if not already cached,
-  // check if model is valid on huggingface
-  // if not, log error and return 0.
-  // if model is valid, update the model size in props and selected value.
-  watch([props.model, props.deviceChecked, searchModel], async (val) => {
-    invalidModel.value = false;
-    const newModel = val[0];
-    const device = props.deviceChecked.value ? 'webgpu' : 'wasm';
-    const indexName = `${newModel}-${device}`;
-    const indexedSize = props.sizeIndex.value.get(indexName);
-    let size;
-
-    // if size is already cached, use it, else get it from api
-    if (indexedSize) {
-      size = indexedSize;
-      props.modelSize.value = size;
-    }
-    else {
-      size = await getModelSize(newModel, device);
-    }
-
-    // if api returns invalid size, error and return
-    if (!size) {
-      console.error('Invalid model.');
-      invalidModel.value = true;
-      setTimeout(() => invalidModel.value = false, popupTime);
-      searchModel.value = false;
-      return 0;
-    }
-
-    // add custom model to selectable options list if not already present
-    if (!props.options.includes(newModel))
-      props.options.push(newModel);
-
-    // update indexed size and selected value
-    props.sizeIndex.value.set(indexName, size);
-    props.modelSize.value = size;
-    selected.value = newModel;
-
-    // set flags to display information in webpage for popupTime in ms
-    if (searchModel.value && !indexedSize) {
-      modelFound.value = true;
-      setTimeout(() => modelFound.value = false, popupTime);
-      searchModel.value = false;
-    }
-    else if (searchModel.value && indexedSize) {
-      modelExists.value = true;
-      setTimeout(() => modelExists.value = false, popupTime);
-      searchModel.value = false;
-    }
-
-  });
-
-  function handleChange() {
-    props.model.value = selected.value;
-  };
-
-  function handleEnter(event) {
-    props.model.value = event.target.value;
-    searchModel.value = true;
-    event.target.value = '';
-  }
-
-  // format model size to MB or GB, depending on size in MB
-  const formattedSize = computed(() => {
-    const sizeMB = props.modelSize.value;
-    return sizeMB >= 1000
-         ? `${(sizeMB / 1000).toFixed(2)} GB`
-         : `${sizeMB.toFixed(2)} MB`;
-  });
-</script>
-
 <style scoped>
 .size-item {
   margin-left: 10px;
@@ -144,12 +146,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 70%;
+  width: 100%;
 }
 
 .model-input {
   text-align: center;
-  width: 50%;
+  width: 100%;
 }
 
 .invalid-model {

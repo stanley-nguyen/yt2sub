@@ -9,17 +9,20 @@
     <caption>Transcript</caption>
     <thead>
       <tr>
-        <th>Start</th>
-        <th>End</th>
+        <th v-if="transcribed && transcribed.chunks">Start</th>
+        <th v-if="transcribed && transcribed.chunks">End</th>
         <th>Text</th>
       </tr>
     </thead>
     <tbody>
-      <tr v-for="(chunk, index) in transcribed.chunks" :key="index">
+      <tr v-if="transcribed && transcribed.chunks" v-for="(chunk, index) in transcribed.chunks" :key="index">
         <td v-for="(t, _) in chunk.timestamp">
           <span>{{ t.toFixed(2) }}</span> 
         </td>
         <td>{{ chunk.text }}</td>
+      </tr>
+      <tr v-else-if="transcribed && !transcribed.chunks">
+        <td colspan="3">{{ transcribed.text }}</td>
       </tr>
     </tbody>
   </table>

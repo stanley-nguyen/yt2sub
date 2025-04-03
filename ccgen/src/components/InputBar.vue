@@ -4,7 +4,7 @@ import { audioToText } from '../transcribe.js';
 import Dropdown from './Dropdown.vue';
 
 const url = ref('');
-const emit = defineEmits(["update:deviceChecked", "update:status"]);
+const emit = defineEmits(["update:deviceChecked", "update:status", "update:options"]);
 
 const props = defineProps({
   status: Object,
@@ -12,7 +12,8 @@ const props = defineProps({
   transcribed: Object,
   model: Object,
   modelSize: Object,
-  sizeIndex: Object
+  sizeIndex: Object,
+  modelOptions: Object
 });
 
 async function transcribeAudio() {
@@ -60,13 +61,16 @@ const handleChecked = () => {
   emit('update:deviceChecked');
 }
 
-const modelOptions = ['Xenova/whisper-tiny', 'Xenova/whisper-tiny.en', 'Xenova/whisper-base', 'Xenova/whisper-medium'];
+const emitOptions = (options) => {
+  emit('update:options', options);
+}
 </script>
 
 <template>
   <div>
     <input class="url-text" id="url-text" type="text" v-model="url" @keyup.enter="transcribeAudio" placeholder="Enter YouTube URL / ID">
-    <Dropdown :options="modelOptions" :model="model" :modelSize="modelSize" :deviceChecked="deviceChecked" :sizeIndex="sizeIndex"/>
+    <Dropdown :options="modelOptions" :model="model" :modelSize="modelSize" :deviceChecked="deviceChecked" :sizeIndex="sizeIndex"
+              @update:options="emitOptions"/>
     <div class="checkbox-container">
       <label for="device-checkbox" class="device-label">WebGPU</label>
       <input type="checkbox" id="device-checkbox" :checked="deviceChecked.value" @change="handleChecked">
@@ -76,13 +80,18 @@ const modelOptions = ['Xenova/whisper-tiny', 'Xenova/whisper-tiny.en', 'Xenova/w
 
 <style scoped>
 div {
+  display: flex;
+  flex-direction: column;
   text-align: center;
+  justify-content: center;
+  align-items: center;
   margin-bottom: 1em;
 }
 
 .url-text {
   display: block;
   text-align: center;
+  align-items: center;
   width: 50em;
   margin-bottom: 0.5em;
 }
@@ -96,6 +105,7 @@ div {
 
 .checkbox-container {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
 }
