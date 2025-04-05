@@ -1,24 +1,29 @@
 <script setup>
 import { ref } from 'vue'
-import { audioToText } from '../transcribe.js';
+import { audioToArr } from '../transcribe.js';
 import Dropdown from './Dropdown.vue';
 
 const url = ref('');
-const emit = defineEmits(["update:deviceChecked", "update:status", "update:options"]);
+const emit = defineEmits(["update:deviceChecked", "update:running", "update:options", "update:status"]);
 
 const props = defineProps({
-  status: Object,
+  worker: Object,
   deviceChecked: Object,
   transcribed: Object,
   model: Object,
   modelSize: Object,
   sizeIndex: Object,
-  modelOptions: Object
+  modelOptions: Object,
+  errored: Object
 });
 
 async function transcribeAudio() {
-  console.log("Transcribing Audio...");
+  console.log("Fetching Audio Stream...");
 
+  emit("update:status", 1);
+  emit("update:running", true);
+
+  let f32Array;
   try {
     const id = urlToID(url.value);
 
@@ -27,8 +32,6 @@ async function transcribeAudio() {
       throw new Error('Invalid YouTube URL');
     }
 
-    // status 1 = fetching audio data
-    emit("update:status", 1);
     const response = await fetch(`http://localhost:3000/api/${id}`);
 
     if (!response.ok) {
@@ -36,13 +39,17 @@ async function transcribeAudio() {
       throw new Error(err.error);
     }
 
-    const transcribed = await audioToText(props.model.value, props.status, props.deviceChecked, response);
-    props.transcribed.value = transcribed;
+    f32Array = await audioToArr(response);
   } catch (error) {
     console.error(error);
-  } finally {
-    props.status.value = 0;
   }
+
+  props.transcribed.value = null
+  props.worker.value.postMessage({
+    f32Array: f32Array,
+    model: props.model.value,
+    device: props.deviceChecked.value ? 'webgpu' : 'wasm'
+  });
 }
 
 function urlToID(url) {
@@ -69,6 +76,7 @@ const emitOptions = (options) => {
 <template>
   <div>
     <input class="url-text" id="url-text" type="text" v-model="url" @keyup.enter="transcribeAudio" placeholder="Enter YouTube URL / ID">
+    <label class="errored-text" for="url-text" v-if="errored.value.error">{{ errored.value.message }}</label>
     <Dropdown :options="modelOptions" :model="model" :modelSize="modelSize" :deviceChecked="deviceChecked" :sizeIndex="sizeIndex"
               @update:options="emitOptions"/>
     <div class="checkbox-container">
@@ -93,6 +101,11 @@ div {
   text-align: center;
   align-items: center;
   width: 50em;
+  margin-bottom: 0.5em;
+}
+
+.errored-text {
+  color: red;
   margin-bottom: 0.5em;
 }
 

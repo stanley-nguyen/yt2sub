@@ -1,5 +1,3 @@
-import { pipeline } from '@huggingface/transformers';
-
 async function streamToF32Array(blob) {
     const chunks = new Uint8Array(await blob.arrayBuffer());
 
@@ -41,40 +39,17 @@ export async function getModelSize(modelName, device) {
     }
 }
 
-export async function audioToText(model, status, deviceChecked, response) {
-    console.log("entered audioToText");
+export async function audioToArr(response) {
+    console.log("entered audioToArr");
 
     try {
         const audioBlob = await response.blob();
         console.log("stream loaded");
 
         // pipeline takes Float32Array
-        const f32Array = await streamToF32Array(audioBlob);
-    
-        // switch to webgpu if enabled
-        const device = deviceChecked.value ? 'webgpu' : 'wasm';
-
-        // status 2 = load model
-        status.value = 2;
-        const transcriber = await pipeline('automatic-speech-recognition', model, {
-            device: device,
-        });
-        console.log("transcriber loaded");
-    
-        // status 3 = transcribe audio
-        status.value = 3;
-        const start = performance.now();
-        const output = await transcriber(f32Array, { chunk_length_s: 30, stride_length_s: 3, return_timestamps: true });
-        const end = performance.now();
-
-        console.log(`Transcription took ${((end - start) / 1000).toFixed(2)} seconds`);
-
-        return output;
+        return await streamToF32Array(audioBlob);;
     } catch (error) {
         console.error(error.message);
         throw error;
-    } finally {
-        // status 0 = default
-        status.value = 0;
     }
 }

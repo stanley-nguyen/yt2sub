@@ -1,23 +1,25 @@
-<template>
-    <div v-if="status !== 0">
-        <p v-if="status === 1">Fetching Audio Stream...</p>
-        <p v-else-if="status === 2">Loading Model (first time may take a while)...</p>
-        <p v-else-if="status === 3">Generating Transcript using {{ deviceChecked ? 'WebGPU' : 'WASM' }}...</p>
-    </div>
-</template>
-
 <script setup>
-defineProps({
-  status: {
-    type: Number,
-    required: true
-  },
-  deviceChecked: {
-    type: Boolean,
-    required: true
-  }
+import Progress from './Progress.vue';
+
+const props = defineProps({
+  progressItems: Object,
+  ready: Object,
+  status: Object,
+  statusMap: Object
 });
+
+let progressItems = props.progressItems;
+let status = props.status;
 </script>
+
+<template>
+  <div class="progress-bars-container">
+      <label v-if="status">{{ statusMap[status]  }}</label>
+      <div v-for="data in progressItems" :key="data.file">
+        <Progress :text="data.file" :percentage="data.progress"></Progress>
+      </div>
+  </div>
+</template>
 
 <style scoped>
 div {
