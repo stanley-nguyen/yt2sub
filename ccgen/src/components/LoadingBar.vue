@@ -1,15 +1,14 @@
 <script setup>
+import { toRefs } from 'vue';
 import Progress from './Progress.vue';
 
 const props = defineProps({
   progressItems: Object,
-  ready: Object,
   status: Object,
   statusMap: Object
 });
 
-let progressItems = props.progressItems;
-let status = props.status;
+const { progressItems, status, statusMap } = toRefs(props);
 </script>
 
 <template>

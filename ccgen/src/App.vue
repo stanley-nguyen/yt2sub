@@ -97,7 +97,7 @@ const inputProps = computed(() => {
   return running.value === false? 
        { worker: worker, running: running, status: status,
         deviceChecked: deviceChecked, transcribed: transcribed, model: model, modelSize: modelSize, sizeIndex: sizeIndex, modelOptions: modelOptions, errored: errored } // props for InputBar component
-     : { progressItems: progressItems, ready: ready, status: status, statusMap: statusMap };                                                                                                                    // props for LoadingBar component
+     : { progressItems: progressItems, status: status, statusMap: statusMap };                                                                                                                    // props for LoadingBar component
 });
 </script>
 
