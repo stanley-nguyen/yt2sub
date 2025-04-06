@@ -1,6 +1,7 @@
 <script setup>
-import { toRefs } from 'vue';
+import { toRefs, watch } from 'vue';
 import Progress from './Progress.vue';
+import { formatSize } from '@/utils';
 
 const props = defineProps({
   progressItems: Object,
@@ -9,13 +10,17 @@ const props = defineProps({
 });
 
 const { progressItems, status, statusMap } = toRefs(props);
+
+watch(() => props.progressItems, (newval) => {
+  progressItems.value = newval;
+})
 </script>
 
 <template>
   <div class="progress-bars-container">
       <label v-if="status">{{ statusMap[status]  }}</label>
       <div v-for="data in progressItems" :key="data.file">
-        <Progress :text="data.file" :percentage="data.progress"></Progress>
+        <Progress :text="`${data.file} : ${formatSize(data.loaded)} / ${formatSize(data.total)}`" :percentage="data.progress"></Progress>
       </div>
   </div>
 </template>

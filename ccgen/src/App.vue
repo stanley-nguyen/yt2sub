@@ -19,7 +19,7 @@ const status = ref(0);
 const statusMap = {
   0: 'Ready to transcribe',
   1: 'Fetching Audio Stream...',
-  2: 'Loading Model (first time may take a while)...',
+  2: 'Loading Model (only run once per model)...',
   3: 'Transcribing using WebGPU...',
   4: 'Transcribing using WASM...'
 }
@@ -37,7 +37,7 @@ const onMessageReceived = (e) => {
       // Model file progress: update one of the progress items.
       progressItems.value = progressItems.value.map(item => {
         if (item.file === e.data.file) {
-          return { ...item, progress: e.data.progress }
+          return { ...item, progress: e.data.progress, loaded: e.data.loaded, total: e.data.total }
         }
         return item;
       });
@@ -45,8 +45,9 @@ const onMessageReceived = (e) => {
 
     case 'done':
       // Model file loaded: remove the progress item from the list.
-      status.value = deviceChecked ? 3 : 4; // set status to transcribing with WebGPU or WASM
       progressItems.value = progressItems.value.filter(item => item.file !== e.data.file);
+      if (!progressItems.value.length)
+        status.value = deviceChecked ? 3 : 4; // set status to transcribing with WebGPU or WASM
       break;
 
     case 'ready':

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
-import { getModelSize } from '@/transcribe';
+import { getModelSize } from '@/utils';
 
 const popupTime = 3000; // time that information popups will display for in milliseconds
 

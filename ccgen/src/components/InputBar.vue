@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { audioToArr } from '../transcribe.js';
+import { audioToArr } from '../utils.js';
 import Dropdown from './Dropdown.vue';
 
 const url = ref('');
