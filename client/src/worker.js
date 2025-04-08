@@ -43,7 +43,9 @@ self.addEventListener('message', async (event) => {
     return;
   }
 
-  const output = await transcriber(event.data.f32Array, { chunk_length_s: 30, stride_length_s: 3, return_timestamps: true });
+  const output = await transcriber(event.data.f32Array, { chunk_length_s: 30, stride_length_s: 3, return_timestamps: true,
+                                                          language: event.data.language, task: event.data.translateChecked ? 'translate' : 'transcribe'
+  });
 
   // Send the output back to the main thread
   self.postMessage({

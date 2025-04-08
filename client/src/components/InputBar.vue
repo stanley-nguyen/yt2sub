@@ -2,26 +2,26 @@
 import { ref } from 'vue'
 import { audioToArr } from '../utils.js';
 import Dropdown from './Dropdown.vue';
+import LanguageSelector from './LanguageSelector.vue';
 
 const url = ref('');
-const emit = defineEmits(["update:deviceChecked", "update:running", "update:options", "update:status"]);
+const emit = defineEmits(["update:deviceChecked", "update:running", "update:options", "update:status", "update:translateChecked", "update:language"]);
 
 const props = defineProps({
   worker: Object,
   deviceChecked: Object,
+  translateChecked: Object,
   transcribed: Object,
   model: Object,
   modelSize: Object,
   sizeIndex: Object,
   modelOptions: Object,
-  errored: Object
+  errored: Object,
+  sourceLanguage: Object
 });
 
 async function transcribeAudio() {
   console.log("Fetching Audio Stream...");
-
-  emit("update:status", 1);
-  emit("update:running", true);
 
   let f32Array;
   try {
@@ -31,7 +31,9 @@ async function transcribeAudio() {
       url.value = '';
       throw new Error('Invalid YouTube URL');
     }
-
+    
+    emit("update:running", true);
+    emit("update:status", 1);
     const response = await fetch(`http://localhost:3000/api/${id}`);
 
     if (!response.ok) {
@@ -42,13 +44,19 @@ async function transcribeAudio() {
     f32Array = await audioToArr(response);
   } catch (error) {
     console.error(error);
+    props.worker.value.postMessage({
+      status: 'error',
+      error
+    })
   }
 
   props.transcribed.value = null
   props.worker.value.postMessage({
     f32Array: f32Array,
     model: props.model.value,
-    device: props.deviceChecked.value ? 'webgpu' : 'wasm'
+    device: props.deviceChecked.value ? 'webgpu' : 'wasm',
+    translateChecked: props.translateChecked.value,
+    language: props.sourceLanguage.value
   });
 }
 
@@ -63,14 +71,6 @@ function urlToID(url) {
 
   return match ? match[1] : url;
 }
-
-const handleChecked = () => {
-  emit('update:deviceChecked');
-}
-
-const emitOptions = (options) => {
-  emit('update:options', options);
-}
 </script>
 
 <template>
@@ -78,10 +78,22 @@ const emitOptions = (options) => {
     <input class="url-text" id="url-text" type="text" v-model="url" @keyup.enter="transcribeAudio" placeholder="Enter YouTube URL / ID">
     <label class="errored-text" for="url-text" v-if="errored.value.error">{{ errored.value.message }}</label>
     <Dropdown :options="modelOptions" :model="model" :modelSize="modelSize" :deviceChecked="deviceChecked" :sizeIndex="sizeIndex"
-              @update:options="emitOptions"/>
+              @update:options="(opt) => emit('update:options', opt)"/>
+
+    <div class="language-container">
+      <LanguageSelector type="Source" defaultLanguage="English" :model="model" @change="(lg) => emit('update:language', lg.target.value)"></LanguageSelector>
+    </div>
+
     <div class="checkbox-container">
-      <label for="device-checkbox" class="device-label">WebGPU</label>
-      <input type="checkbox" id="device-checkbox" :checked="deviceChecked.value" @change="handleChecked">
+      <div class="device-container">
+        <label for="device-checkbox" class="device-label">WebGPU</label>
+        <input type="checkbox" id="device-checkbox" :checked="deviceChecked.value" @change="emit('update:deviceChecked')">
+      </div>
+
+      <div class="tl-container">
+        <label for="tl-checkbox" class="translate-label">Translate</label>
+        <input type="checkbox" id="tl-checkbox" :checked="translateChecked.value" @change="emit('update:translateChecked')">
+      </div>
     </div>
   </div>
 </template>
@@ -116,14 +128,26 @@ div {
   justify-content: center;
 }
 
-.checkbox-container {
+.language-container {
   display: flex;
   flex-direction: row;
+}
+
+.checkbox-container {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 
-.device-label {
+.device-container, .tl-container {
+  display: block;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.device-label, .translate-label {
   margin-right: 0.5em;
 }
 </style>

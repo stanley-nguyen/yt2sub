@@ -11,6 +11,7 @@ const progressItems = ref([]);
 const errored = ref({error: false, message: null});
 const transcribed = ref(null);
 const deviceChecked = ref(true);
+const translateChecked = ref(false);
 const model = ref('Xenova/whisper-tiny');
 const modelSize = ref(151.489138);
 const sizeIndex = ref(new Map());
@@ -23,6 +24,7 @@ const statusMap = {
   3: 'Transcribing using WebGPU...',
   4: 'Transcribing using WASM...'
 }
+const sourceLanguage = ref('English');
 
 const onMessageReceived = (e) => {
   switch (e.data.status) {
@@ -57,6 +59,9 @@ const onMessageReceived = (e) => {
 
     case 'error':
       // Transcription error: display an error.
+      status.value = 0;
+      running.value = false;
+
       errored.value.error = true;
       if (e.data.error.message === 'Unsupported device: "webgpu". Should be one of: wasm.')
         errored.value.message = 'WebGPU is unsupported, try unchecking the box or enabling it on your browser';
@@ -97,8 +102,9 @@ onBeforeUnmount(() => {
 const inputProps = computed(() => {
   return running.value === false? 
        { worker: worker, running: running, status: status,
-        deviceChecked: deviceChecked, transcribed: transcribed, model: model, modelSize: modelSize, sizeIndex: sizeIndex, modelOptions: modelOptions, errored: errored } // props for InputBar component
-     : { progressItems: progressItems, status: status, statusMap: statusMap };                                                                                                                    // props for LoadingBar component
+        deviceChecked: deviceChecked, translateChecked: translateChecked,
+        transcribed: transcribed, model: model, modelSize: modelSize, sizeIndex: sizeIndex, modelOptions: modelOptions, errored: errored, sourceLanguage: sourceLanguage } // props for InputBar component
+     : { progressItems: progressItems, status: status, statusMap: statusMap };                                                                                             // props for LoadingBar component
 });
 </script>
 
@@ -115,9 +121,11 @@ const inputProps = computed(() => {
         <div class="url-item">
           <component :is="running === false ? InputBar : LoadingBar" v-bind="inputProps"
                      @update:deviceChecked="deviceChecked = !deviceChecked"
+                     @update:translateChecked="translateChecked = !translateChecked"
                      @update:running="(rn) => running = rn"
                      @update:options="(op) => modelOptions.push(op)"
-                     @update:status="(st) => status = st"/>
+                     @update:status="(st) => status = st"
+                     @update:language="(lg) => sourceLanguage = lg"/>
         </div>
       </div>
 
