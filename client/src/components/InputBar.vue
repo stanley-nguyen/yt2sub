@@ -81,7 +81,7 @@ function urlToID(url) {
               @update:options="(opt) => emit('update:options', opt)"/>
 
     <div class="language-container">
-      <LanguageSelector type="Source" defaultLanguage="English" :model="model" @change="(lg) => emit('update:language', lg.target.value)"></LanguageSelector>
+      <LanguageSelector type="Source Language" defaultLanguage="English" :model="model" @change="(lg) => emit('update:language', lg.target.value)"></LanguageSelector>
     </div>
 
     <div class="checkbox-container">

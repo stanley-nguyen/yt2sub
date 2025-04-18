@@ -60,3 +60,46 @@ export async function audioToArr(response) {
     throw error;
   }
 }
+
+function formatASSTime(seconds) {
+  // time format: H/MM/SS/MS, 0:00:00.0
+  const h = String(Math.floor(seconds / 3600)).padStart(1, '0');
+  const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+  const s = String((seconds % 60).toFixed(2)).padStart(5, '0');
+  return `${h}:${m}:${s}`;
+}
+
+export function transcriptToASS(transcription) {
+  const template = `[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+ScaledBorderAndShadow: yes
+YCbCr Matrix: None
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,16,&Hffffff,&Hffffff,&H0,&H0,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
+
+  // dialogue format:
+  // Format: Layer, Start,      End,        Style,   Name, MarginL, MarginR, MarginV, Effect, Text
+  // Dialogue:   0, 0:00:00.0, 0:00:02.00, Default,     ,       0,       0,       0,       , Text
+  const body = transcription.chunks.map((chunk) => {
+    return `Dialogue: 0,${formatASSTime(chunk.timestamp[0])},${formatASSTime(chunk.timestamp[1])},Default,,0,0,0,,${chunk.text}`;
+  });
+
+  return `${template}\n${body.join('\n')}`;
+}
+
+export function downloadFile(content, filename, type = 'text/plain') {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}

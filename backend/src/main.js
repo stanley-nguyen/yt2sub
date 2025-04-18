@@ -10,5 +10,5 @@ app.use(cors());
 app.get('/api/:id', ytService.urlToStream);
 
 app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+  console.log(`Server is running on port ${port}`);
 });

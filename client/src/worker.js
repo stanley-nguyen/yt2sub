@@ -4,7 +4,7 @@ class TranscriptionPipeline {
   static task = 'automatic-speech-recognition';
   static model = null;
   static instance = null;
-  static device = 'webgpu';
+  static device = null;
 
   static async getInstance(progress_callback = null) {
     this.instance ??= pipeline(this.task, this.model, { device: this.device, progress_callback });

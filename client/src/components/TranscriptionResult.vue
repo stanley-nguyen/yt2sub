@@ -1,10 +1,16 @@
 <script setup>
-  defineProps({
-    transcribed: Object
-  })
+import DownloadButton from './DownloadButton.vue';
+
+defineProps({
+  transcribed: Object,
+  required: true
+})
 </script>
 
 <template>
+  <div class="dl-wrapper">
+    <DownloadButton :transcribed="transcribed"/>
+  </div>
   <table v-if="transcribed">
     <caption>Transcript</caption>
     <thead>
@@ -16,8 +22,8 @@
     </thead>
     <tbody>
       <tr v-if="transcribed && transcribed.chunks" v-for="(chunk, index) in transcribed.chunks" :key="index">
-        <td v-for="(t, _) in chunk.timestamp">
-          <span>{{ t.toFixed(2) }}</span> 
+        <td v-for="t in chunk.timestamp">
+          <span>{{ Number(t)?.toFixed(2) }}</span> 
         </td>
         <td>{{ chunk.text }}</td>
       </tr>
@@ -29,6 +35,11 @@
 </template>
 
 <style scoped>
+.dl-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
 table {
   margin: 0 auto;
   width: 95%;
