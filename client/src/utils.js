@@ -94,6 +94,25 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
   return `${template}\n${body.join('\n')}`;
 }
 
+function formatSRTTime(seconds) {
+  // time format: HH:MM:SS,mmm, 00:00:00,000
+  const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+  const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+  const s = String((seconds % 60).toFixed(3)).padStart(5, '0').replace('.', ',');
+  return `${h}:${m}:${s}`;
+}
+
+export function transcriptToSRT(transcription) {
+  // srt format:
+  // index #
+  // timestamp (HH:MM:SS,mmm)
+  const body = transcription.chunks.map((chunk, index) => {
+    return `${index}\n${formatSRTTime(chunk.timestamp[0])} --> ${formatSRTTime(chunk.timestamp[1])}\n${chunk.text.trim()}`;
+  });
+
+  return `${body.join('\n\n')}`;
+}
+
 export function downloadFile(content, filename, type = 'text/plain') {
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);

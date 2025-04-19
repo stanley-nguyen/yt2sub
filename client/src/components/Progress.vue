@@ -39,7 +39,7 @@ const props = defineProps({
   height: 100%;
   background: linear-gradient(45deg, #690000, #b80a0a);
   border-radius: 5px;
-  transition: width 0.1s ease-in-out;
+  transition: width 0s ease-in-out;
   font-weight: bold;
   padding-top: 1px;
   padding-left: 10px;

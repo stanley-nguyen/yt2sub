@@ -74,7 +74,7 @@ const onMessageReceived = (e) => {
           error: false,
           message: null
         }
-      }, 7000);
+      }, 15000);
       break;
 
     case 'complete':
