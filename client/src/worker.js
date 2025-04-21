@@ -1,15 +1,26 @@
 import { pipeline } from '@huggingface/transformers';
 
 class TranscriptionPipeline {
-  static task = 'automatic-speech-recognition';
+  static task = null;
   static model = null;
   static instance = null;
   static device = null;
+
+  constructor(model, device) {
+    this.model = model;
+    this.device = device;
+  }
 
   static async getInstance(progress_callback = null) {
     this.instance ??= pipeline(this.task, this.model, { device: this.device, progress_callback });
     return this.instance;
   }
+}
+
+class AutomaticSpeechRecognitionPipeline extends TranscriptionPipeline {
+  static task = 'automatic-speech-recognition';
+  static model = null;
+  static device = null;
 }
 
 // Listen for messages from the main thread
@@ -22,14 +33,22 @@ self.addEventListener('message', async (event) => {
     return;
   }
 
-  TranscriptionPipeline.model = event.data.model;
-  TranscriptionPipeline.device = event.data.device;
+  const asrPipeline = AutomaticSpeechRecognitionPipeline;
+  if (asrPipeline.model !== event.data.model || asrPipeline.device !== event.data.device) {
+    asrPipeline.model = event.data.model;
+    asrPipeline.device = event.data.device;
+
+    if (asrPipeline.instance !== null) {
+      (await asrPipeline.getInstance()).dispose();
+      asrPipeline.instance = null;
+    }
+  }
 
   // Retrieve the translation pipeline. When called for the first time,
   // this will load the pipeline and save it for future use.
   let transcriber;
   try {
-    transcriber = await TranscriptionPipeline.getInstance(x => {
+    transcriber = await asrPipeline.getInstance(x => {
       // We also add a progress callback to the pipeline so that we can
       // track model loading.
       self.postMessage(x);
