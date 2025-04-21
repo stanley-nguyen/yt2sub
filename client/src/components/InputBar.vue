@@ -4,6 +4,7 @@ import { audioToArr } from '../utils.js';
 import Dropdown from './Dropdown.vue';
 import LanguageSelector from './LanguageSelector.vue';
 
+const apiUrl = import.meta.env.VITE_APP_API_URL;
 const url = ref('');
 const emit = defineEmits(["update:deviceChecked", "update:running", "update:options", "update:status", "update:translateChecked", "update:language"]);
 
@@ -34,7 +35,7 @@ async function transcribeAudio() {
     
     emit("update:running", true);
     emit("update:status", 1);
-    const response = await fetch(`http://localhost:3000/api/${id}`);
+    const response = await fetch(`${apiUrl}/api/${id}`);
 
     if (!response.ok) {
       const err = await response.json();

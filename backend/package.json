@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "src/main.js",
   "scripts": {
+    "start": "node src/main.js",
     "dev": "node src/main.js"
   },
   "keywords": [],
@@ -12,6 +13,7 @@
   "dependencies": {
     "@distube/ytdl-core": "^4.16.8",
     "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
     "express": "^4.21.2"
   }
 }
