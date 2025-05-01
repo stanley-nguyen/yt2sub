@@ -1,4 +1,5 @@
-import ytdl from '@distube/ytdl-core';
+import ytdl from '@nuclearplayer/ytdl-core';
+import fs from 'fs';
 
 export async function urlToStream(req, res) {
   try {
@@ -9,15 +10,20 @@ export async function urlToStream(req, res) {
       return res.status(404).json({ error: 'Invalid YouTube URL' })
     }
 
+    let agent;
+    if (fs.existsSync('/etc/secrets/cookies.json')) {
+      agent = ytdl.createAgent(JSON.parse(fs.readFileSync('/etc/secrets/cookies.json')));
+    }
+
     // find best audio format and create a stream
-    const info = await ytdl.getInfo(url);
-    const format = ytdl.chooseFormat(info.formats, { filter: 'audioonly' });
+    const info = await ytdl.getInfo(url, { agent });
+    const format = ytdl.chooseFormat(info.formats, { filter: 'audioonly', agent });
 
     if (!format) {
       return res.status(404).json({ error: 'No format found.' });
     }
 
-    const audioStream = ytdl(url, { format });
+    const audioStream = ytdl(url, { format, agent });
     
     audioStream.on('error', (err) => {
       console.error(err);
