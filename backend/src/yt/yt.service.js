@@ -10,20 +10,28 @@ export async function urlToStream(req, res) {
       return res.status(404).json({ error: 'Invalid YouTube URL' })
     }
 
-    let agent;
+    let cookies;
+    let cookieHeader;
     if (fs.existsSync('/etc/secrets/cookies.json')) {
-      agent = ytdl.createAgent(JSON.parse(fs.readFileSync('/etc/secrets/cookies.json')));
+      cookies = JSON.parse(fs.readFileSync('/etc/secrets/cookies.json'));
+      cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
     }
 
+    const requestOptions = {
+      headers: {
+        Cookie: cookieHeader
+      }      
+    };
+
     // find best audio format and create a stream
-    const info = await ytdl.getInfo(url, { agent });
-    const format = ytdl.chooseFormat(info.formats, { filter: 'audioonly', agent });
+    const info = await ytdl.getInfo(url, { requestOptions });
+    const format = ytdl.chooseFormat(info.formats, { filter: 'audioonly' });
 
     if (!format) {
       return res.status(404).json({ error: 'No format found.' });
     }
 
-    const audioStream = ytdl(url, { format, agent });
+    const audioStream = ytdl.downloadFromInfo(info, { format });
     
     audioStream.on('error', (err) => {
       console.error(err);
