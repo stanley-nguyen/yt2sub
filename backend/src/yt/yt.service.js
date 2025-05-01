@@ -38,7 +38,7 @@ export async function urlToStream(req, res) {
       po_token: poToken,
       visitor_data: visitorData,
       retrieve_player: true,
-      client_type: 'WEB_EMBEDDED_PLAYER'
+      client_type: 'WEB'
     });
 
     const info = await yt.getBasicInfo(id);
