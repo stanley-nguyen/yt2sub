@@ -38,10 +38,9 @@ export async function urlToStream(req, res) {
       po_token: poToken,
       visitor_data: visitorData,
       retrieve_player: true,
-      client_type: 'TVHTML5'
     });
 
-    const info = await yt.getBasicInfo(id);
+    const info = await yt.getBasicInfo(id, 'TV');
 
     console.log(info);
     const formats = info.streaming_data.adaptive_formats.filter(f => 
@@ -62,7 +61,9 @@ export async function urlToStream(req, res) {
     // format.mimeType = audio/webm; codecs="opus"
     // set Content-Type header to audio/{mimeType}
     res.setHeader('Content-Type', bestFormat.mime_type.split(';')[0]); 
-    res.setHeader('Content-Length', bestFormat.content_length);
+    if (bestFormat.content_length) {
+      res.setHeader('Content-Length', bestFormat.content_length);
+    }
 
     const audioReadable = Readable.fromWeb(audioResponse.body);
     audioReadable.on('error', (err) => {
