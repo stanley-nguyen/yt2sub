@@ -42,7 +42,6 @@ export async function urlToStream(req, res) {
 
     const info = await yt.getBasicInfo(id, 'TV');
 
-    console.log(info);
     const formats = info.streaming_data.adaptive_formats.filter(f => 
       f.has_audio && !f.has_video
     );
