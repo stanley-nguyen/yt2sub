@@ -1,21 +1,69 @@
 import fs from 'fs';
-import { Innertube, Session, Platform } from 'youtubei.js';
-import { generate } from 'youtube-po-token-generator';
+import { Innertube, Session, Platform, UniversalCache } from 'youtubei.js';
 import { Readable } from 'stream';
 import 'dotenv/config';
+import { JSDOM } from 'jsdom';
+import { BG } from 'bgutils-js'
 
 let cachedToken = null;
 const TOKEN_REFRESH = 2.16e7; // 6 hours in milliseconds
 
 async function getPoToken() {
   // refresh after 6 hours
-  if (!cachedToken || Date.now() - cachedToken.timestamp > TOKEN_REFRESH) {
-    const { visitorData, poToken } = await generate();
-    cachedToken = {
-      visitorData,
-      poToken,
-      timestamp: Date.now()
-    };
+  if (cachedToken && Date.now() - cachedToken.timestamp < TOKEN_REFRESH) {
+    return cachedToken;
+  }
+  // Create a barebones Innertube instance so we can get a visitor data string from YouTube.
+  let innertube = await Innertube.create({ retrieve_player: false });
+
+  const requestKey = 'O43z0dpjhgX20SCx4KAo';
+  const visitorData = innertube.session.context.client.visitorData;
+
+  if (!visitorData)
+    throw new Error('Could not get visitor data');
+
+  const dom = new JSDOM();
+
+  Object.assign(globalThis, {
+    window: dom.window,
+    document: dom.window.document
+  });
+
+  const bgConfig = {
+    fetch: (input, init) => fetch(input, init), 
+      globalObj: globalThis,
+      identifier: visitorData,
+      requestKey
+  };
+
+  const bgChallenge = await BG.Challenge.create(bgConfig);
+
+  if (!bgChallenge)
+    throw new Error('Could not get challenge');
+
+  const interpreterJavascript = bgChallenge.interpreterJavascript.privateDoNotAccessOrElseSafeScriptWrappedValue;
+  if (interpreterJavascript) {
+    new Function(interpreterJavascript)();
+  } else throw new Error('Could not load VM');
+
+  const poTokenResult = await BG.PoToken.generate({
+    program: bgChallenge.program,
+    globalName: bgChallenge.globalName,
+    bgConfig
+  });
+
+  const placeholderPoToken = BG.PoToken.generatePlaceholder(visitorData);
+
+  console.info('Session Info:', {
+    visitorData,
+    placeholderPoToken,
+    poToken: poTokenResult.poToken,
+    integrityTokenData: poTokenResult.integrityTokenData
+  });
+
+  cachedToken = {
+    visitorData,
+    poToken: poTokenResult.poToken
   }
 
   return cachedToken;
@@ -56,6 +104,7 @@ export async function urlToStream(req, res) {
       po_token: poToken || undefined,
       visitor_data: visitorData || undefined,
       retrieve_player: true,
+      cache: new UniversalCache(true)
     });
 
     const session = new Session(
