@@ -52,14 +52,14 @@ async function getPoToken() {
     bgConfig
   });
 
-  const placeholderPoToken = BG.PoToken.generatePlaceholder(visitorData);
+  // const placeholderPoToken = BG.PoToken.generatePlaceholder(visitorData);
 
-  console.info('Session Info:', {
-    visitorData,
-    placeholderPoToken,
-    poToken: poTokenResult.poToken,
-    integrityTokenData: poTokenResult.integrityTokenData
-  });
+  // console.info('Session Info:', {
+  //   visitorData,
+  //   placeholderPoToken,
+  //   poToken: poTokenResult.poToken,
+  //   integrityTokenData: poTokenResult.integrityTokenData
+  // });
 
   cachedToken = {
     visitorData,
@@ -100,11 +100,12 @@ export async function urlToStream(req, res) {
 
     const innertube = await Innertube.create({
       fetch: customFetch,
-      cookie: cookieHeader || undefined,
-      po_token: poToken || undefined,
-      visitor_data: visitorData || undefined,
+      cookie: cookieHeader,
+      po_token: poToken,
+      visitor_data: visitorData,
       retrieve_player: true,
-      cache: new UniversalCache(true)
+      cache: new UniversalCache(true),
+      generate_session_locally: true
     });
 
     const session = new Session(
@@ -114,10 +115,10 @@ export async function urlToStream(req, res) {
       innertube.session.account_index,
       innertube.session.config_data,
       innertube.session.player,
-      cookieHeader || undefined,
+      cookieHeader,
       customFetch,
       innertube.session.cache,
-      poToken || undefined
+      poToken
     );
 
     const yt = new Innertube(session);
@@ -125,7 +126,7 @@ export async function urlToStream(req, res) {
     const info = await yt.getBasicInfo(id, process.env.innertubeClient);
 
     const playability = info.playability_status;
-    if (!playability) {
+    if (playability.status != 'OK') {
       res.status(404).json({
         error: playability.reason,
         status: playability.status
