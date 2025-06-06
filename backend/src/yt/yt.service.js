@@ -2,6 +2,7 @@ import fs from 'fs';
 import { Innertube, Session, Platform } from 'youtubei.js';
 import { generate } from 'youtube-po-token-generator';
 import { Readable } from 'stream';
+import 'dotenv/config';
 
 let cachedToken = null;
 const TOKEN_REFRESH = 2.16e7; // 6 hours in milliseconds
@@ -71,8 +72,8 @@ export async function urlToStream(req, res) {
     );
 
     const yt = new Innertube(session);
-    
-    const info = await yt.getBasicInfo(id, 'IOS');
+
+    const info = await yt.getBasicInfo(id, process.env.innertubeClient);
 
     const playability = info.playability_status;
     if (!playability) {
