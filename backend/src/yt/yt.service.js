@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { Innertube } from 'youtubei.js';
+import { Innertube, Session, Platform } from 'youtubei.js';
 import { generate } from 'youtube-po-token-generator';
 import { Readable } from 'stream';
 
@@ -30,31 +30,78 @@ export async function urlToStream(req, res) {
     cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
   }
 
+  // custom fetch from https://github.com/LuanRT/YouTube.js/issues/962
+  const customFetch = async (input, init) => {
+    const url = typeof input === 'string'
+      ? new URL(input)
+      : input instanceof URL
+        ? input
+        : new URL(input.url);
+
+    const request = new Request(
+      url,
+      input instanceof Platform.shim.Request ? input : undefined
+    );
+
+    return fetch(request, init);
+  };
+
   try {
     const { visitorData, poToken } = await getPoToken();
 
-    const yt = await Innertube.create({
-      cookie: cookieHeader,
-      po_token: poToken,
-      visitor_data: visitorData,
+    const innertube = await Innertube.create({
+      fetch: customFetch,
+      cookie: cookieHeader || undefined,
+      po_token: poToken || undefined,
+      visitor_data: visitorData || undefined,
       retrieve_player: true,
     });
 
-    const info = await yt.getBasicInfo(id, 'TV');
-
-    const formats = info.streaming_data.adaptive_formats.filter(f => 
-      f.has_audio && !f.has_video
+    const session = new Session(
+      innertube.session.context,
+      innertube.session.api_key,
+      innertube.session.api_version,
+      innertube.session.account_index,
+      innertube.session.config_data,
+      innertube.session.player,
+      cookieHeader || undefined,
+      customFetch,
+      innertube.session.cache,
+      poToken || undefined
     );
 
-    if (!formats || formats.length === 0) {
-      return res.status(404).json({ error: "No audio formats found" });
+    const yt = new Innertube(session);
+    
+    const info = await yt.getBasicInfo(id, 'IOS');
+
+    const playability = info.playability_status;
+    if (!playability) {
+      res.status(404).json({
+        error: playability.reason,
+        status: playability.status
+      });
+      return;
     }
 
-    const bestFormat = formats.sort((a, b) => b.bitrate - a.bitrate)[0];
+    const basicInfo = info.basic_info;
+    if (basicInfo.is_live) {
+      res.status(403).json({
+        error: 'Live streams are not supported.'
+      });
+      return;
+    }
+    if (basicInfo.is_private) {
+      res.status(403).json({
+        error: 'Private videos are not supported.'
+      });
+      return;
+    }
 
-    const audioUrl = bestFormat.decipher(yt.session.player);
+    const audioFormats = info.streaming_data.adaptive_formats.filter(format => 
+      format.mime_type.startsWith('audio/')
+    );
 
-    const audioResponse = await fetch(audioUrl);
+    const bestFormat = audioFormats.sort((a, b) => b.bitrate - a.bitrate)[0];
 
     // example format:
     // format.mimeType = audio/webm; codecs="opus"
@@ -63,6 +110,10 @@ export async function urlToStream(req, res) {
     if (bestFormat.content_length) {
       res.setHeader('Content-Length', bestFormat.content_length);
     }
+
+    const audioUrl = bestFormat.decipher(yt.session.player);
+
+    const audioResponse = await fetch(audioUrl);
 
     const audioReadable = Readable.fromWeb(audioResponse.body);
     audioReadable.on('error', (err) => {
