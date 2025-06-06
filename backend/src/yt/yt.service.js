@@ -148,9 +148,6 @@ export async function urlToStream(req, res) {
       return;
     }
 
-    console.log(info);
-    res.json(info);
-    return;
     const audioFormats = info.streaming_data.adaptive_formats.filter(format => 
       format.mime_type.startsWith('audio/')
     );
